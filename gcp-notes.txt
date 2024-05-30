@@ -1,0 +1,110 @@
+
+Deployment Manager:
+
+resources:
+- name: the-first-vm
+  type: compute.v1.instance
+  properties:
+    zone: us-central1-a
+    machineType: https://www.googleapis.com/compute/v1/projects/maximal-radius-424614-q7/zones/us-central1-a/machineTypes/e2-micro
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20150423
+    networkInterfaces:
+    - network: https://www.googleapis.com/compute/v1/projects/maximal-radius-424614-q7/global/networks/default
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
+
+
+
+﻿
+
+Commands:
+
+gcloud config set project maximal-radius-424614-q7
+
+gcloud deployment-manager types list
+
+https://cloud.google.com/deployment-manager/docs/configuration/supported-resource-types
+
+gcloud deployment-manager deployments create compute-gcs --config sample-config.yaml 
+
+gcloud deployment-manager deployments describe my-deployment
+
+gcloud deployment-manager deployments delete compute-gcs
+
+gcloud deployment-manager deployments update my-deployment --config vm_config.yaml
+
+
+
+
+-----------------------------------------------------------------------------------------------------
+
+
+Terraform:
+
+#main.tf
+
+resource "google_compute_instance" "default" {
+  name         = "terraform-instance"
+  machine_type = "e2-medium"
+  zone         = "us-central1-b"
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-11"
+    }
+  }
+
+  network_interface {
+    network = "default"
+
+    access_config {
+    }
+  }
+
+   metadata = {
+    # ssh-keys = "your-username:ssh-rsa <your-public-ssh-key> your-username"
+    startup-script = <<-EOF
+      #!/bin/bash
+      sudo apt-get update
+      sudo apt-get install -y apache2
+      sudo systemctl start apache2
+      sudo systemctl enable apache2
+    EOF
+  }
+}
+
+
+#provider.tf
+
+
+terraform {
+    required_providers {
+      google = {
+        source = "hashicorp/google"
+        version = "~> 4.60"
+      }
+    }
+}
+
+provider "google" {
+  credentials = file("./key.json")
+  project     = "maximal-radius-424614-q7"
+  region      = "us-central1"
+}
+
+
+Commands:
+
+terraform init
+terraform plan
+terraform apply
+terraform destroy
+
+
