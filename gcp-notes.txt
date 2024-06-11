@@ -108,3 +108,79 @@ terraform apply
 terraform destroy
 
 
+-----------------------------------------------------------------------
+
+
+GKE:
+
+
+gcloud container clusters create my-cluster \
+    --zone us-central1-a \
+    --num-nodes 3
+
+
+gcloud container clusters delete my-cluster --zone us-central1-a
+
+
+kubectl get all
+
+kubectl run nginx-deploy --image nginx
+
+kubectl delete pod nginx-deploy
+
+
+----------------------------------------------------------
+
+CDM Template:
+
+resources:
+- name: my-slo
+  type: gcp-types/monitoring-v3:projects.services.serviceLevelObjectives
+  properties:
+    parent: projects/maximal-radius-424614-q7/services/apache-server
+    serviceLevelObjectiveId: my-slo
+    serviceLevelObjective:
+      displayName: "My SLO"
+      goal: 0.99
+      rollingPeriod: "604800s"  # 1 week in seconds
+      serviceLevelIndicator:
+        basicSli:
+          availability:
+            enabled: true
+
+
+-----------------------------------------------------------------
+
+
+Terraform Template:
+
+provider "google" {
+  project = "YOUR_PROJECT_ID"
+  region  = "YOUR_REGION"
+}
+
+resource "google_monitoring_slo" "example_slo" {
+  service {
+    project_id = "YOUR_PROJECT_ID"
+    service_id = "YOUR_SERVICE_ID"
+  }
+
+  display_name = "Example SLO"
+  goal         = 0.99
+
+  rolling_period_days = 30
+
+  request_based_sli {
+    distribution_cut {
+      distribution_filter = "metric.type=\"custom.googleapis.com/my/custom/metric\""
+      range {
+        min = 0
+        max = 100
+      }
+    }
+  }
+}
+
+
+
+
