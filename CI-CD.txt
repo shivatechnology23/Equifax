@@ -1,0 +1,122 @@
+----------app.py
+
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return "Hello, World!"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
+
+
+-----------Dockerfile
+
+
+# Use the official Python image from the Docker Hub
+FROM python:3.8-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install the required packages
+RUN pip install Flask
+
+# Make port 8080 available to the world outside this container
+EXPOSE 8080
+
+# Define environment variable
+ENV NAME World
+
+# Run app.py when the container launches
+CMD ["python", "app.py"]
+
+
+
+-------------cloudbuild.yaml
+
+
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/flask-app', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/flask-app']
+
+- name: 'gcr.io/cloud-builders/kubectl'
+  args:
+  - 'set'
+  - 'image'
+  - 'deployment/flask-app-deployment'
+  - 'flask-app=gcr.io/$PROJECT_ID/flask-app'
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=my-cluster'
+
+images:
+- 'gcr.io/$PROJECT_ID/flask-app'
+
+
+
+--------------deployment.yaml
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+      - name: flask-app
+        image: gcr.io/YOUR_PROJECT_ID/flask-app
+        ports:
+        - containerPort: 8080
+
+
+
+
+---------------service.yaml
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-app-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: flask-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+
+
+
+
+--------------Commands
+
+
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+gcloud container clusters get-credentials my-cluster --zone us-central1-a
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+
+gcloud builds submit --config cloudbuild.yaml .
+
