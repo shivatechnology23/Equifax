@@ -120,3 +120,154 @@ kubectl apply -f service.yaml
 
 gcloud builds submit --config cloudbuild.yaml .
 
+
+----------------------------
+
+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
+
+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
+
+
+----------------------------Jenkins Install Ubuntu
+
+
+
+#!/bin/bash
+sudo apt update
+sudo apt install openjdk-11-jre -y
+  curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+    /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+  echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+    https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+    /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt-get update
+sudo apt-get install jenkins -y
+
+
+----------------------------Terraform Install Ubuntu
+
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+
+
+------------------------------Docker Install
+
+
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+
+
+
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+
+-----------------Install Containers
+
+# INSTALL CONTAINERS
+docker run -d --name prometheus -p 9090:9090 prom/prometheus
+
+docker run -d --name grafana -p 3000:3000 grafana/grafana
+
+docker run -d -p 8080:8080 -p 50000:50000 jenkins/jenkins:lts
+
+
+
+------------------Execute containers
+
+do
+docker ps
+docker images
+docker ps -a
+
+docker exec -it <prometheus_container_ID> /bin/sh
+
+docker rm <container_ID>
+docker rmi <image_ID>
+
+
+--------------------Prometheus Config
+
+cd /etc/prometheus
+
+vi prometheus.yml
+
+#add to the end:
+  - job_name: "jenkins"
+    metrics_path: /prometheus
+    static_configs:
+      - targets: ['18.192.80.50:8080']
+
+#restart prometheus pod
+docker restart f88445fcd5b2
+
+
+-------------------Jenkins Test Pipeline
+
+
+pipeline {
+  agent any
+  triggers { 
+    cron('* * * * *')
+  }
+  stages {
+    stage('Hello') {
+      steps {
+        echo 'Hello World - team-a - test'
+        sleep 3
+      }
+    }
+  }
+}
+
+
+--------------------------------------
+
+kubectl expose service prometheus-server --type=NodePort --target-port=9090 --name=extpromy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
